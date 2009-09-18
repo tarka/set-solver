@@ -41,6 +41,23 @@ class SetImage(object):
         self.img = img.convert()     # RGB by default
         self.gsimg = filter(self.img, toGreyscale)
         self.thimg = filter(self.gsimg, partial(threshold, 0.6))
-    
+
+    # FIXME: Make SetImage iterable?
+    def color(self):
+        # Count colour occurences, ignoring white. Return most common.
+        d={}
+        size = self.img.size
+        for x in range(size[0]):
+            for y in range(size[1]):
+                p = self.img.getpixel((x,y))
+                if p != (255,255,255):
+                    if p in d:
+                        d[p] += 1
+                    else:
+                        d[p] = 1
+        getter = lambda a:a[1]
+        return sorted(d.iteritems(), key=getter, reverse=True)[0][0] 
+
+            
 
     
