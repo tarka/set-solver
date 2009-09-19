@@ -130,14 +130,13 @@ class SetImage(object):
             for y in range(size[1]):
                 p = self.img.getpixel((x,y))
                 (hue,sat,val) = rgb_to_hsv(*pxToFloat(p))
-                if sat > 0.5:
+                if sat > 0.5:  # Ignore greyscale colors
                     if p in d:
                         d[p] += 1
                     else:
                         d[p] = 1
-        getter = lambda a:a[1]
-        
-        col = sorted(d.iteritems(), key=getter, reverse=True)[0][0] 
+
+        col = sorted(d.iteritems(), key=lambda a:a[1], reverse=True)[0][0] 
         (hue,sat,val) = rgb_to_hsv(*pxToFloat(col))
 
         log.debug("Pos %s rgb = %s, hsv = %s"%(self.pos, col, hue))
@@ -405,13 +404,14 @@ def calcsets(prev=False):
             for c in imgs:
                 if a.pos == b.pos or b.pos == c.pos or c.pos == a.pos:
                     continue
+
                 sys.stdout.write('.')
                 sys.stdout.flush()
-
                 if isset(a,b,c):
                     sol.add(tuple(sorted([a,b,c])))
     print
     return sol
+
 
 ######################################################################
 
