@@ -1,5 +1,5 @@
 
-import sys, re, urllib2
+import sys, re, urllib2, optparse
 from StringIO import StringIO
 import logging as log
 from PIL import Image
@@ -405,10 +405,42 @@ def calcsets(prev=False):
             for c in imgs:
                 if a.pos == b.pos or b.pos == c.pos or c.pos == a.pos:
                     continue
+                sys.stdout.write('.')
+                sys.stdout.flush()
 
                 if isset(a,b,c):
                     sol.add(tuple(sorted([a,b,c])))
+    print
+    return sol
 
-    for (a, b, c) in sol:
+######################################################################
+
+def parseopts():
+    oparse = optparse.OptionParser()
+    
+    oparse.add_option("-v", "--verbose", action="store_true",
+                      help="Verbose messages", default=False)
+    oparse.add_option("-d", "--debug", action="store_true",
+                      help="Enable debug output", default=False)
+    oparse.add_option("-p", "--previous", action="store_true",
+                      help="Run against previous day", default=False)
+
+    opts, rest = oparse.parse_args()
+
+    return opts
+
+if __name__ == '__main__':
+    opts = parseopts()
+
+    if opts.debug:
+        log.root.setLevel(log.DEBUG)
+    elif opts.verbose:
+        log.root.setLevel(log.INFO)
+
+
+    solutions = calcsets(prev=opts.previous)
+
+    print "%s solutions found"%len(solutions)
+    for (a, b, c) in solutions:
         printcoords( a, b, c)
 
