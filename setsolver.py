@@ -56,10 +56,10 @@ def flooded(img, target, replacement):
     # 1. If the colour of node is not equal to target-colour, return.
     # 2. If the colour of node is equal to replacement-colour, return.
     # 3. Set the colour of node to replacement-colour.
-    # 4. Perform Flood-fill (west of node, target-colour, replacement-colour).
-    #    Perform Flood-fill (east of node, target-colour, replacement-colour).
-    #    Perform Flood-fill (north of node, target-colour, replacement-colour).
-    #    Perform Flood-fill (south of node, target-colour, replacement-colour).
+    # 4. Perform Flood-fill (west of node, target, replacement).
+    #    Perform Flood-fill (east of node, target, replacement).
+    #    Perform Flood-fill (north of node, target, replacement).
+    #    Perform Flood-fill (south of node, target, replacement).
     # 5. Return.
     def flood(img, target, replacement, sx, sy, x=0, y=0):
         if img[x,y] != target: return
@@ -74,6 +74,13 @@ def flooded(img, target, replacement):
     return i2
 
 
+# Quick'n'dirty enum
+class Pattern(object):
+    LINES = 1
+    BLANK = 2
+    SOLID = 3
+
+
 class SetImage(object):
     
     def __init__(self, giffile):
@@ -84,6 +91,7 @@ class SetImage(object):
         self._count = None
         self._pattern = None
         self._shape = None
+        self._spans = None
 
     # FIXME: Make SetImage iterable?
     @property
@@ -106,9 +114,14 @@ class SetImage(object):
         self._colour = sorted(d.iteritems(), key=getter, reverse=True)[0][0] 
         return self._colour
 
+
     @property
     def count(self):
         if self._count != None: return self._count
+
+        # Cache the spans of the shapes, they're needed for pattern
+        # calculation
+        self._spans = []
 
         # To count the shapes we flood-fill the non-shape parts of the
         # BW version of the image with a known color.  We then
@@ -119,14 +132,62 @@ class SetImage(object):
         y = fimg.size[1]/2
         trans = 0
         prev = fcol
+        span = None
         for x in range(fimg.size[0]):
             p = fimg.getpixel((x,y))
             if p != fcol and prev == fcol:
                 # This is a rising edge; count
                 trans += 1
+                span = [x,None]
+            elif p == fcol and prev != fcol:
+                # Falling edge, save span
+                span[1] = x
+                self._spans.append(span)
             prev = p
+
         self._count = trans
         return self._count
+
+    @property
+    def spans(self):
+        if self._spans != None: return self._spans
+
+        # Spans are calculated as part of count
+        count = self.count
+        return self._spans
+
+    @property
+    def pattern(self):
+        if self._pattern != None: return self._pattern
+
+        # To determine to pattern we find the middle of a shape and
+        # ray-cast through the BW image vertically.  The number of
+        # transitions to black gives us the pattern.
+        # FIXME: Very similar to the count routine, should merge
+        span = self.spans[0]
+        x = span[0] + ((span[1]-span[0]) / 2)
+
+        white = (255,255,255)
+        prev = white
+        trans = 0
+        for y in range(self.bwimg.size[1]):
+            p = self.bwimg.getpixel((x,y))
+            if prev == white and p != white:
+                # White->Black edge
+                trans += 1
+            prev = p
+
+        if trans == 1:
+            self._pattern = Pattern.SOLID
+        elif trans == 2:
+            self._pattern = Pattern.BLANK
+        elif trans > 5:  # Lines should be between 6-10 transitions
+            self._pattern = Pattern.LINES
+        else:
+            raise RuntimeError("Not enough transitions in shape: %s"%trans)
+        return self._pattern
+            
+
     
     def linecount(self):
         trans = 0

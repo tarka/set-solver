@@ -16,6 +16,8 @@ si = SetImage("test/55.gif")
 #s2 = si.bwimg.copy()
 #sx,sy = s2.size
 #ss.flood(s2.load(), (255,255,255), (255,0,0), *s2.size)
-ss.flooded(si.bwimg, (255,255,255), (255,0,0)).show()
+#ss.flooded(si.bwimg, (255,255,255), (255,0,0)).show()
 
 
+SetImage("test/69.gif").bwimg.show()
+SetImage("test/69.gif").pattern
