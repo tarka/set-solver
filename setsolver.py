@@ -1,5 +1,7 @@
 
-import sys
+import sys, re, urllib2
+from StringIO import StringIO
+import logging as log
 from PIL import Image
 from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import partial
@@ -85,17 +87,36 @@ class Shape(object):
     DIAMOND = 2
     OVAL = 3
 
+class Colour(object):
+    RED = 1
+    GREEN = 2
+    PURPLE = 3
+
 class SetImage(object):
     
-    def __init__(self, giffile):
+    def __init__(self, giffile, pos=None):
+        self.pos = pos
+
         img = Image.open(giffile)
         self.img = img.convert()     # RGB by default
         self.bwimg = pxfilter(pxfilter(self.img, toGreyscale), partial(threshold, 0.6))
+
         self._colour = None
         self._count = None
         self._pattern = None
         self._shape = None
         self._spans = None
+
+    def __cmp__(self, other):
+        return cmp(self.pos, other.pos)
+
+    @property
+    def gridx(self):
+        return (self.pos / 4) + 1
+
+    @property
+    def gridy(self):
+        return (self.pos % 4) + 1
 
     # FIXME: Make SetImage iterable?
     @property
@@ -108,14 +129,28 @@ class SetImage(object):
         for x in range(size[0]):
             for y in range(size[1]):
                 p = self.img.getpixel((x,y))
-                if p != (255,255,255):
+                (hue,sat,val) = rgb_to_hsv(*pxToFloat(p))
+                if sat > 0.5:
                     if p in d:
                         d[p] += 1
                     else:
                         d[p] = 1
         getter = lambda a:a[1]
         
-        self._colour = sorted(d.iteritems(), key=getter, reverse=True)[0][0] 
+        col = sorted(d.iteritems(), key=getter, reverse=True)[0][0] 
+        (hue,sat,val) = rgb_to_hsv(*pxToFloat(col))
+
+        log.debug("Pos %s rgb = %s, hsv = %s"%(self.pos, col, hue))
+        if hue < 0.1:
+            self._colour = Colour.RED
+        elif hue > 0.3 and hue < 0.35:
+            self._colour = Colour.GREEN
+        elif hue > 0.77 and hue < 0.81:
+            self._colour = Colour.PURPLE
+        else:
+            # NFI
+            raise RuntimeError("Couldn't work out the color for %s: %s - %s"%(self.pos, col, hsv))
+        
         return self._colour
 
 
@@ -250,7 +285,8 @@ class SetImage(object):
                 nzcount +=1 
         zratio = nzcount / zcount
 
-        # Calculate the overall variance trend 
+        # Calculate the overall variance trend by reducing contiguous
+        # trends to single values
         vdiff=[]
         prev = 0
         for d in diff:
@@ -262,7 +298,7 @@ class SetImage(object):
                 prev = 1
 
         # Guesstimate:
-        if vdiff == [-1, 1,-1, 1]:
+        if vdiff == [-1, 1, -1, 1]:
             # Wavy == squiggle:
             self._shape = Shape.SQUIGGLE
 
@@ -270,32 +306,109 @@ class SetImage(object):
             # Up then down, but has large contiguous area == oval
             self._shape = Shape.OVAL
 
-        elif vdiff == [-1, 1] and zratio > 0.75:
+        elif vdiff == [-1, 1] and zratio > 0.70:
             # Up then down, but not especially flat == diamond            
             self._shape = Shape.DIAMOND
 
         else:
             # NFI
-            raise RuntimeError("Couldn't work out the shape")
+            log.error("Couldn't work out the shape of %s: %s, %s" % (self.pos, vdiff, zratio))
+            raise RuntimeError("Couldn't work out the shape of %s"%self.pos)
 
         return self._shape
 
+
+setbase = "http://www.setgame.com/puzzle/"
+setpage = "set.htm"
+prevpage = "set_puzzle_yesterdays_solution.htm"
+imgre = re.compile("(\.\./images/setcards/small/\d+\.gif)")
+
+def fetch(url):
+    log.debug("Fetching %s"%url)
+    try:
+        req = urllib2.Request(url)
+        req.add_header("User-Agent", "Mozilla")
+        fd = urllib2.build_opener().open(req)
+    except IOError, e:
+        print "failed:",e
+        sys.exit()
+    return fd
     
-    def linecount(self):
-        trans = 0
-        size = self.bwimg.size
-        for x in range(size[0]):
-            prev = self.bwimg.getpixel((x,0))
-            ttrans = 0
-            for y in range(size[1]):
-                p = self.bwimg.getpixel((x,y))
-                if prev != p:
-                    print x,prev,p
-                    ttrans += 1
-                    prev = p
+def fetchsets(prev=False):
+    log.info("Fetching page")
+    if prev:
+        url = setbase+prevpage
+    else:
+        url = setbase+setpage
 
-            if ttrans > trans:
-                trans = ttrans
+    pagefd = fetch(url)
+    gifs = []
+    for line in pagefd:
+        match = imgre.search(line)
+        if match != None:
+            gifpath = match.group(0)
+            log.info("Got img %s" % gifpath)
+            gifs.append(gifpath)
 
-        return trans
+    if prev:
+        # Expect more from this page
+        gifs = gifs[:12]
+
+    if len(gifs) != 12:
+        raise RuntimeError("Wrong no. of images: %s" % len(gifs))
+
+    imgs = []
+    pos = 0
+    for i in gifs:
+        log.info("Fetching img %s"%i)
+        ifd = fetch(setbase+i)
+        imgs.append(SetImage(StringIO(ifd.read()), pos=pos))
+        pos += 1
+
+    return imgs
+
+
+def same(attr, a,b,c):
+    aa = getattr(a, attr)
+    ba = getattr(b, attr)
+    ca = getattr(c, attr)
+    same = aa == ba == ca
+    log.debug("SAME %s: %s == %s == %s -> %s", attr, aa, ba, ca, same)
+    return same
+
+
+def different(attr, a,b,c):
+    aa = getattr(a, attr)
+    ba = getattr(b, attr)
+    ca = getattr(c, attr)
+    diff = aa != ba and ba != ca and ca != aa 
+    log.debug("DIFF %s: %s != %s != %s -> %s", attr, aa, ba, ca, diff)
+    return diff
+
+
+def printcoords(a, b, c):
+    print "(",a.gridx, a.gridy, ") (", b.gridx, b.gridy, ") (", c.gridx, c.gridy,")"
+
+
+def isset(a,b,c):
+    for attr in ["colour", "count", "pattern", "shape"]:
+        if (not same(attr, a, b, c)) and (not different(attr, a, b, c)):
+            log.debug("Reject (%s,%s,%s): %s"%(a.pos, b.pos, c.pos, attr))
+            return False
+    return True
+
+def calcsets(prev=False):
+    imgs = fetchsets(prev=prev)
+    sol = set()
+    for a in imgs:
+        for b in imgs:
+            for c in imgs:
+                if a.pos == b.pos or b.pos == c.pos or c.pos == a.pos:
+                    continue
+
+                if isset(a,b,c):
+                    sol.add(tuple(sorted([a,b,c])))
+
+    for (a, b, c) in sol:
+        printcoords( a, b, c)
 
