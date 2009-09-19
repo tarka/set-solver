@@ -80,6 +80,10 @@ class Pattern(object):
     BLANK = 2
     SOLID = 3
 
+class Shape(object):
+    SQUIGGLE = 1
+    DIAMOND = 2
+    OVAL = 3
 
 class SetImage(object):
     
@@ -148,6 +152,7 @@ class SetImage(object):
         self._count = trans
         return self._count
 
+
     @property
     def spans(self):
         if self._spans != None: return self._spans
@@ -155,6 +160,7 @@ class SetImage(object):
         # Spans are calculated as part of count
         count = self.count
         return self._spans
+
 
     @property
     def pattern(self):
@@ -186,7 +192,93 @@ class SetImage(object):
         else:
             raise RuntimeError("Not enough transitions in shape: %s"%trans)
         return self._pattern
-            
+
+
+    @property
+    def shape(self):
+        if self._shape != None: return self._shape
+
+        # Guesstimate the shape; find the top and bottom of one of the
+        # shapes, then sample the variance of one side.
+
+        # Find leftmost part of edge
+        # def findedge():
+        #     for x in range(self.bwimg.size[0]):
+        #         for y in range(self.bwimg.size[1]):
+        #             if self.bwimg.getpixel((x,y)) != (255,255,255):
+        #                 return x
+        # lstart = findedge()
+        
+        # Scan to find top/bottom edge
+        span = self.spans[0]
+        def findtop(sy, ey, step):
+            for y in range(sy, ey, step):
+                for x in range(span[0],span[1]+1):
+                    if self.bwimg.getpixel((x,y)) != (255,255,255):
+                        return y
+
+        top = findtop(0,self.bwimg.size[1], 1)
+        bottom = findtop(self.bwimg.size[1]-1, 0, -1)
+
+        # Scan left side, recording values
+        def findleft(y):
+            #for x in range(span[0],span[1]+1):
+            for x in range(0,self.bwimg.size[0]):
+                if self.bwimg.getpixel((x,y)) != (255,255,255):
+                    return x
+
+        left = []
+        for y in range(top, bottom+1):
+            left.append(findleft(y))
+
+        # Calc variation
+        prev = None
+        diff = []
+        for x in left:
+            if prev != None:
+                d = x-prev
+                diff.append(d)
+            prev = x
+        
+        # Calc zero to non-zero variation 
+        zcount = 0.0
+        nzcount = 0.0
+        for d in diff:
+            if d == 0: 
+                zcount += 1
+            else:
+                nzcount +=1 
+        zratio = nzcount / zcount
+
+        # Calculate the overall variance trend 
+        vdiff=[]
+        prev = 0
+        for d in diff:
+            if d < 0 and not prev < 0:
+                vdiff.append(-1)
+                prev = -1
+            elif d > 0 and not prev > 0:
+                vdiff.append(1)
+                prev = 1
+
+        # Guesstimate:
+        if vdiff == [-1, 1,-1, 1]:
+            # Wavy == squiggle:
+            self._shape = Shape.SQUIGGLE
+
+        elif vdiff == [-1, 1] and zratio < 0.5:
+            # Up then down, but has large contiguous area == oval
+            self._shape = Shape.OVAL
+
+        elif vdiff == [-1, 1] and zratio > 0.75:
+            # Up then down, but not especially flat == diamond            
+            self._shape = Shape.DIAMOND
+
+        else:
+            # NFI
+            raise RuntimeError("Couldn't work out the shape")
+
+        return self._shape
 
     
     def linecount(self):

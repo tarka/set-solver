@@ -19,5 +19,8 @@ si = SetImage("test/55.gif")
 #ss.flooded(si.bwimg, (255,255,255), (255,0,0)).show()
 
 
-SetImage("test/69.gif").bwimg.show()
-SetImage("test/69.gif").pattern
+#SetImage("test/67.gif").bwimg.show()
+#SetImage("test/57.gif").bwimg.show()
+print SetImage("test/57.gif").shape
+print SetImage("test/67.gif").shape
+print SetImage("test/49.gif").shape

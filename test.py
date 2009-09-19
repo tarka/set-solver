@@ -1,9 +1,7 @@
 
 import sys, logging, unittest
 import setsolver as ss
-from setsolver import SetImage, Pattern
-
-
+from setsolver import SetImage, Pattern, Shape
 
 
 class TestCount(unittest.TestCase):
@@ -37,6 +35,7 @@ class TestCount(unittest.TestCase):
         self.assertEqual(SetImage("test/79.gif").count, 1)
         self.assertEqual(SetImage("test/80.gif").count, 2)
         self.assertEqual(SetImage("test/81.gif").count, 3)
+
 
 class TestPattern(unittest.TestCase):
 
@@ -86,6 +85,56 @@ class TestPattern(unittest.TestCase):
         self.assertEqual(SetImage("test/79.gif").pattern, Pattern.BLANK)
         self.assertEqual(SetImage("test/80.gif").pattern, Pattern.BLANK)
         self.assertEqual(SetImage("test/81.gif").pattern, Pattern.BLANK)
+
+
+class TestShape(unittest.TestCase):
+
+    def testFilledSquiggleShape(self):
+        self.assertEqual(SetImage("test/01.gif").shape, Shape.SQUIGGLE)
+        self.assertEqual(SetImage("test/02.gif").shape, Shape.SQUIGGLE)
+        self.assertEqual(SetImage("test/03.gif").shape, Shape.SQUIGGLE)
+
+    def testFilledDiamondShape(self):
+        self.assertEqual(SetImage("test/10.gif").shape, Shape.DIAMOND)
+        self.assertEqual(SetImage("test/11.gif").shape, Shape.DIAMOND)
+        self.assertEqual(SetImage("test/12.gif").shape, Shape.DIAMOND)
+
+    def testFilledOvalShape(self):
+        self.assertEqual(SetImage("test/19.gif").shape, Shape.OVAL)
+        self.assertEqual(SetImage("test/20.gif").shape, Shape.OVAL)
+        self.assertEqual(SetImage("test/21.gif").shape, Shape.OVAL)
+
+
+    def testLinesSquiggleShape(self):
+        self.assertEqual(SetImage("test/28.gif").shape, Shape.SQUIGGLE)
+        self.assertEqual(SetImage("test/29.gif").shape, Shape.SQUIGGLE)
+        self.assertEqual(SetImage("test/30.gif").shape, Shape.SQUIGGLE)
+
+    def testLinesDiamondShape(self):
+        self.assertEqual(SetImage("test/37.gif").shape, Shape.DIAMOND)
+        self.assertEqual(SetImage("test/38.gif").shape, Shape.DIAMOND)
+        self.assertEqual(SetImage("test/39.gif").shape, Shape.DIAMOND)
+
+    def testLinesOvalShape(self):
+        self.assertEqual(SetImage("test/49.gif").shape, Shape.OVAL)
+        self.assertEqual(SetImage("test/50.gif").shape, Shape.OVAL)
+        self.assertEqual(SetImage("test/51.gif").shape, Shape.OVAL)
+
+
+    def testBlankSquiggleShape(self):
+        self.assertEqual(SetImage("test/55.gif").shape, Shape.SQUIGGLE)
+        self.assertEqual(SetImage("test/56.gif").shape, Shape.SQUIGGLE)
+        self.assertEqual(SetImage("test/57.gif").shape, Shape.SQUIGGLE)
+
+    def testBlankDiamondShape(self):
+        self.assertEqual(SetImage("test/67.gif").shape, Shape.DIAMOND)
+        self.assertEqual(SetImage("test/68.gif").shape, Shape.DIAMOND)
+        self.assertEqual(SetImage("test/69.gif").shape, Shape.DIAMOND)
+
+    def testBlankOvalShape(self):
+        self.assertEqual(SetImage("test/79.gif").shape, Shape.OVAL)
+        self.assertEqual(SetImage("test/80.gif").shape, Shape.OVAL)
+        self.assertEqual(SetImage("test/81.gif").shape, Shape.OVAL)
 
 
 if __name__ == '__main__':
