@@ -22,10 +22,10 @@ from functools import partial
 # Graphics processing/conversion routines
 
 def pxtofloat(px):
-    return (float(px[0])/255,float(px[1])/255,float(px[2])/255)
+    return tuple(map(lambda x: float(x)/255, px))
 
 def pxtoint(px):
-    return (int(px[0]*255), int(px[1]*255), int(px[2]*255))
+    return tuple(map(lambda x: int(x*255), px))
 
 
 # Return a new image which has had fn applied to each pixel
