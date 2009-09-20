@@ -6,8 +6,9 @@ from PIL import Image
 from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import partial
 
-sys.setrecursionlimit(10000)
 
+######################################################################
+# Graphics processing/conversion routines
 
 def pxToFloat(px):
     return (float(px[0])/255,float(px[1])/255,float(px[2])/255)
@@ -55,6 +56,10 @@ def tocolour(rgb, px):
 def flooded(img, target, replacement):    
     i2 = img.copy()
 
+    # Recursive flood routing, based on version in wikipedia.
+    #
+    #     http://en.wikipedia.org/wiki/Flood_fill
+    #
     # 1. If the colour of node is not equal to target-colour, return.
     # 2. If the colour of node is equal to replacement-colour, return.
     # 3. Set the colour of node to replacement-colour.
@@ -63,6 +68,10 @@ def flooded(img, target, replacement):
     #    Perform Flood-fill (north of node, target, replacement).
     #    Perform Flood-fill (south of node, target, replacement).
     # 5. Return.
+    # 
+    # This requires bumping Python's recursion limit up, and should
+    # probably be coverted to a queue-based version ...
+    sys.setrecursionlimit(10000)
     def flood(img, target, replacement, sx, sy, x=0, y=0):
         if img[x,y] != target: return
         if img[x,y] == replacement: return
@@ -75,6 +84,9 @@ def flooded(img, target, replacement):
     flood(i2.load(), target, replacement, *i2.size)
     return i2
 
+
+######################################################################
+# Object that converts a set object and exposes its properties
 
 # Quick'n'dirty enum
 class Pattern(object):
@@ -186,7 +198,7 @@ class SetImage(object):
         self._count = trans
         return self._count
 
-
+    
     @property
     def spans(self):
         if self._spans != None: return self._spans
@@ -317,6 +329,9 @@ class SetImage(object):
         return self._shape
 
 
+######################################################################
+# Page-scraping and image fetching
+
 setbase = "http://www.setgame.com/puzzle/"
 setpage = "set.htm"
 prevpage = "set_puzzle_yesterdays_solution.htm"
@@ -367,6 +382,9 @@ def fetchsets(prev=False):
     return imgs
 
 
+######################################################################
+# Solution-search routines
+
 def same(attr, a,b,c):
     aa = getattr(a, attr)
     ba = getattr(b, attr)
@@ -396,8 +414,7 @@ def isset(a,b,c):
             return False
     return True
 
-def calcsets(prev=False):
-    imgs = fetchsets(prev=prev)
+def calcsets(imgs):
     sol = set()
     for a in imgs:
         for b in imgs:
@@ -405,15 +422,21 @@ def calcsets(prev=False):
                 if a.pos == b.pos or b.pos == c.pos or c.pos == a.pos:
                     continue
 
-                sys.stdout.write('.')
-                sys.stdout.flush()
+                if log.root.level == log.INFO:
+                    # Output progress dots
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
+
                 if isset(a,b,c):
                     sol.add(tuple(sorted([a,b,c])))
-    print
+
+    if log.root.level == log.INFO:
+        sys.stdout.write('\n')
     return sol
 
 
 ######################################################################
+# Commandline invocation
 
 def parseopts():
     oparse = optparse.OptionParser()
@@ -438,7 +461,7 @@ if __name__ == '__main__':
         log.root.setLevel(log.INFO)
 
 
-    solutions = calcsets(prev=opts.previous)
+    solutions = calcsets(fetchsets(prev=opts.previous))
 
     print "%s solutions found"%len(solutions)
     for (a, b, c) in solutions:

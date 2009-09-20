@@ -137,6 +137,74 @@ class TestShape(unittest.TestCase):
         self.assertEqual(SetImage("test/81.gif").shape, Shape.OVAL)
 
 
+class TestAllImages(unittest.TestCase):
+
+    def testCategoriseAll(self):
+        for i in range(1,82):
+            img = SetImage("test/%02d.gif"%i)
+            self.assertTrue(img.count in [1,2,3])
+            self.assertTrue(img.shape in [1,2,3])
+            self.assertTrue(img.colour in [1,2,3])
+            self.assertTrue(img.pattern in [1,2,3])
+
+
+class TestSolutions(unittest.TestCase):
+
+    def checkSolutions(self, imgs, ans):
+        for i in range(len(imgs)): 
+            imgs[i].pos = i
+
+        calc = ss.calcsets(imgs)
+        sols = [((a.gridx, a.gridy),(b.gridx, b.gridy), (c.gridx, c.gridy)) 
+                 for (a,b,c) in calc]
+
+        for a in ans:
+            self.assertTrue(a in sols)
+
+    def test20090920(self):
+        imgs = [SetImage("test/76.gif"),
+                SetImage("test/36.gif"),
+                SetImage("test/09.gif"),
+                SetImage("test/38.gif"),
+                SetImage("test/52.gif"),
+                SetImage("test/47.gif"),
+                SetImage("test/51.gif"),
+                SetImage("test/43.gif"),
+                SetImage("test/33.gif"),
+                SetImage("test/60.gif"),
+                SetImage("test/02.gif"),
+                SetImage("test/11.gif")]
+        ans = [((2, 1), (3, 2), (3, 4)),
+               ((1, 1), (1, 3), (1, 4)),
+               ((1, 4), (2, 1), (3, 1)),
+               ((2, 1), (2, 2), (2, 3)),
+               ((1, 1), (1, 2), (3, 4)),
+               ((2, 2), (2, 4), (3, 1))]
+        self.checkSolutions(imgs, ans)
+
+
+    def test20090919(self):
+        imgs = [SetImage("test/17.gif"),
+                SetImage("test/74.gif"),
+                SetImage("test/33.gif"),
+                SetImage("test/04.gif"),
+                SetImage("test/73.gif"),
+                SetImage("test/05.gif"),
+                SetImage("test/13.gif"),
+                SetImage("test/71.gif"),
+                SetImage("test/24.gif"),
+                SetImage("test/16.gif"),
+                SetImage("test/58.gif"),
+                SetImage("test/44.gif")]
+        ans = [((1, 1), (2, 4), (3, 4)),
+               ((2, 2), (2, 3), (3, 1)),
+               ((1, 2), (2, 2), (3, 4)),
+               ((1, 3), (2, 2), (3, 3)),
+               ((1, 1), (1, 3), (2, 1)),
+               ((1, 2), (1, 3), (3, 2))]
+        self.checkSolutions(imgs, ans)
+
+
 if __name__ == '__main__':
     #logging.root.setLevel(logging.DEBUG)
     unittest.main()
