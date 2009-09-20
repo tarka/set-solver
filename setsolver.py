@@ -1,4 +1,15 @@
-
+ 
+######################################################################
+#
+# Solve the daily Set (http://www.setgame.com/set/) using
+# image-processing techniques to categorise the puzzle pieces.
+#
+# Copyright 2009: Steve Smith (aka Tarka): tarkasteve@gmail.com
+# Redistribution of this file is permitted under the terms of the GNU
+# Public License (GPL) version 2.
+#
+######################################################################
+ 
 import sys, re, urllib2, optparse
 from StringIO import StringIO
 import logging as log
