@@ -14,6 +14,7 @@ import sys, re, optparse
 from StringIO import StringIO
 import logging as log
 import requests
+from requests import async
 from PIL import Image
 from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import partial
@@ -350,15 +351,6 @@ prevpage = "set_puzzle_yesterdays_solution.htm"
 imgre = re.compile("(\.\./images/setcards/small/\d+\.gif)")
 headers = {"User-Agent":"Mozilla"}
 
-def fetch(url):
-    log.debug("Fetching %s"%url)
-    try:
-        resp = requests.get(url, headers=headers)
-    except IOError as e:
-        print "failed:",e
-        sys.exit()
-    return resp
-    
 def fetchsets(prev=False):
     log.info("Fetching page")
     if prev:
@@ -366,7 +358,7 @@ def fetchsets(prev=False):
     else:
         url = setbase+setpage
 
-    pagefd = fetch(url)
+    pagefd = requests.get(url)
     gifs = []
     for line in pagefd.iter_lines():
         match = imgre.search(line)
@@ -384,10 +376,10 @@ def fetchsets(prev=False):
 
     imgs = []
     pos = 0
-    for i in gifs:
-        log.info("Fetching img %s"%i)
-        ifd = fetch(i)
-        imgs.append(SetImage(StringIO(ifd.content), pos=pos))
+    log.info("Loading images")
+    resps = async.map([async.get(u) for u in gifs], size=len(gifs))
+    for i in resps:
+        imgs.append(SetImage(StringIO(i.content), pos=pos))
         pos += 1
 
     return imgs
