@@ -10,9 +10,10 @@
 #
 ######################################################################
  
-import sys, re, urllib2, optparse
+import sys, re, optparse
 from StringIO import StringIO
 import logging as log
+import requests
 from PIL import Image
 from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import partial
@@ -347,17 +348,16 @@ setbase = "http://www.setgame.com/puzzle/"
 setpage = "set.htm"
 prevpage = "set_puzzle_yesterdays_solution.htm"
 imgre = re.compile("(\.\./images/setcards/small/\d+\.gif)")
+headers = {"User-Agent":"Mozilla"}
 
 def fetch(url):
     log.debug("Fetching %s"%url)
     try:
-        req = urllib2.Request(url)
-        req.add_header("User-Agent", "Mozilla")
-        fd = urllib2.build_opener().open(req)
-    except IOError, e:
+        resp = requests.get(url, headers=headers)
+    except IOError as e:
         print "failed:",e
         sys.exit()
-    return fd
+    return resp
     
 def fetchsets(prev=False):
     log.info("Fetching page")
@@ -368,12 +368,12 @@ def fetchsets(prev=False):
 
     pagefd = fetch(url)
     gifs = []
-    for line in pagefd:
+    for line in pagefd.iter_lines():
         match = imgre.search(line)
         if match != None:
             gifpath = match.group(0)
             log.info("Got img %s" % gifpath)
-            gifs.append(gifpath)
+            gifs.append(setbase+gifpath)
 
     if prev:
         # Expect more from this page
@@ -386,8 +386,8 @@ def fetchsets(prev=False):
     pos = 0
     for i in gifs:
         log.info("Fetching img %s"%i)
-        ifd = fetch(setbase+i)
-        imgs.append(SetImage(StringIO(ifd.read()), pos=pos))
+        ifd = fetch(i)
+        imgs.append(SetImage(StringIO(ifd.content), pos=pos))
         pos += 1
 
     return imgs
