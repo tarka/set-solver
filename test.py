@@ -9,7 +9,7 @@ class TestCount(unittest.TestCase):
     def testFilledSquiggleCount(self):
         self.assertEqual(SetImage("test/01.gif").count, 1)
         self.assertEqual(SetImage("test/02.gif").count, 2)
-        self.assertEqual(SetImage("test/03.gif").count, 3)
+        self.assertEqual(SetImage("test/03.gif").count, 5)
 
     def testFilledDiamondCount(self):
         self.assertEqual(SetImage("test/10.gif").count, 1)
