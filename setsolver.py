@@ -14,7 +14,7 @@ import sys, re, optparse
 from StringIO import StringIO
 import logging as log
 import requests
-from requests import async
+import grequests
 from PIL import Image
 from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import partial
@@ -377,7 +377,7 @@ def fetchsets(prev=False):
     imgs = []
     pos = 0
     log.info("Loading images")
-    resps = async.map([async.get(u) for u in gifs], size=len(gifs))
+    resps = grequests.map([async.get(u) for u in gifs], size=len(gifs))
     for i in resps:
         imgs.append(SetImage(StringIO(i.content), pos=pos))
         pos += 1
